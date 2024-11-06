@@ -1,64 +1,111 @@
 "use client";
-import { motion } from "framer-motion";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
+// Modify the getData function to load the entire JSON and filter by ID
 const getData = async () => {
-  const res = await fetch("/data/muchmedia.json");
+  const res = await fetch("/data/muchmedia.json"); // Fetch the entire JSON file
 
   if (!res.ok) {
-    throw new Error("Failed to fetch data");
+    throw new Error("Failed to fetch product data");
   }
 
-  const data = await res.json();
-  return data;
+  return await res.json(); // Return the entire product list
 };
 
-export default function Home() {
-  const [products, setProducts] = useState([]);
+const ProductPage = ({ params }) => {
+  const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [id, setId] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getData();
-        setProducts(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+    const resolveParams = async () => {
+      const { id: resolvedId } = await params; // Extract the id from params
+      setId(resolvedId); // Set the id state
     };
 
-    fetchData();
-  }, []);
+    resolveParams();
+  }, [params]);
 
-  if (loading) return <div>Loading...</div>;
+  useEffect(() => {
+    if (id) {
+      const fetchProductData = async () => {
+        try {
+          const data = await getData(); // Get all products from the local JSON file
+          const product = data.find((item) => item.id === parseInt(id)); // Find product by ID
+          setProduct(product);
+        } catch (error) {
+          console.error("Error fetching product:", error);
+          setProduct(null); // In case of error, set product to null
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchProductData();
+    }
+  }, [id]);
+
+  if (loading) return <div>Loading...</div>; // Show loading state while fetching
+  if (!product) return <div>Product not found</div>; // Show message if product is not found
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div>
-        {products.map((product) => (
-          <div key={product.id}>
-            
-            <Link href={`/products/${product.id}`}>
-              <img
-                src={product.banner}  
-                alt={product.title.title1}
-                
-              />
-            </Link>
-            <h2>{product.title.title1}</h2>
-            <p>{product.title.title2}</p>
-            <p>Price: ${product.price}</p>
-          </div>
-        ))}
+    <div>
+      <div className="relative">
+        <img
+          src={product.banner}
+          alt={product.title.title1}
+          className="w-full h-screen object-cover bg-center"
+        />
+        <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-[#040404] to-transparent" />
       </div>
-    </motion.div>
+
+      <div className="py-20 w-11/12 mx-auto flex justify-between">
+        <div>
+          <h1 className="text-gray-600  text-4xl">Created by</h1>
+          <h1 className="text-white indent-8 font-semibold text-xl">
+            {product.created}
+          </h1>
+        </div>
+        <div>
+          <h1 className="text-white font-semibold text-4xl">
+            {product.price} <span>Baht</span>
+          </h1>
+          <h1 className="text-white font-semibold text-sm">Price</h1>
+        </div>
+        <div>
+          <h1 className="text-white font-semibold text-4xl">
+            {product.developed} <span>Month</span>
+          </h1>
+          <h1 className="text-white font-semibold text-sm">Development</h1>
+        </div>
+      </div>
+
+      <div className="w-11/12 mx-auto">
+        <div className="w-9/12">
+          <h1 className="font-bold text-7xl text-white">
+            {product.header.header1}
+          </h1>
+          <p className="py-10 text-xl text-white">{product.title.title1}</p>
+        </div>
+
+        <div>
+          <video
+            className="w-11/12 mx-auto h-auto border-2 rounded-lg" // Tailwind classes for styling
+            controls
+            autoPlay
+            loop
+          >
+            <source src={product.video} type="video/mp4" />
+          </video>
+        </div>
+
+        <div className="w-9/12">
+          <h1 className="pt-10 font-bold text-7xl text-white">{product.header.header2}</h1>
+          <p className="py-10 text-xl text-white">{product.title.title2}</p>
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default ProductPage;
